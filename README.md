@@ -13,8 +13,8 @@ Vocabulary learning app using the Leitner spaced repetition method. Built with R
 ### 1. Clone and install dependencies
 
 ```bash
-git clone https://github.com/jersonjim/vocab-app.git
-cd vocab-app
+git clone https://github.com/jersonjim/lexevo.git
+cd lexevo
 npm install
 ```
 

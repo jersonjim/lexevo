@@ -19,7 +19,7 @@ We use a **branch-per-issue** strategy. `main` is always stable and represents w
 ## Step-by-Step Flow
 
 ### 1. Pick an issue
-Go to [GitHub Issues](https://github.com/jersonjim/vocab-app/issues) and pick one to work on.
+Go to [GitHub Issues](https://github.com/jersonjim/lexevo/issues) and pick one to work on.
 
 ### 2. Create a branch
 ```bash
