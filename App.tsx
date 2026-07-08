@@ -190,8 +190,6 @@ export default function App() {
   useEffect(() => {
     async function init() {
       await applyStoredLanguage();
-      await supabase.auth.signOut();
-      setSession(null);
       setLoading(false);
     }
     init();
@@ -202,13 +200,19 @@ export default function App() {
         setPlanId(undefined);
         const { data } = await supabase
           .from('profiles')
-          .select('plan_id, box_count')
+          .select('plan_id, box_count, streak_theme')
           .eq('id', session.user.id)
           .single();
         setPlanId(data?.plan_id ?? null);
         setBoxCount(data?.box_count ?? null);
-        const storedTheme = await AsyncStorage.getItem('streak_theme');
-        setThemeChosen(!!storedTheme);
+        const remoteTheme = data?.streak_theme ?? null;
+        if (remoteTheme) {
+          await AsyncStorage.setItem('streak_theme', remoteTheme);
+          setThemeChosen(true);
+        } else {
+          const localTheme = await AsyncStorage.getItem('streak_theme');
+          setThemeChosen(!!localTheme);
+        }
       } else {
         setPlanId(undefined);
         setBoxCount(null);

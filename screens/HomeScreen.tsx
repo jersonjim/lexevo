@@ -208,6 +208,7 @@ export default function HomeScreen() {
   const [repertoireModalVisible, setRepertoireModalVisible] = useState(false);
   const [repertoireWords, setRepertoireWords] = useState<RepertoireWord[]>([]);
   const [loadingRepertoireWords, setLoadingRepertoireWords] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [quote, setQuote] = useState<{ q: string; a: string } | null>(null);
   const [boxModalStat, setBoxModalStat] = useState<BoxStat | null>(null);
   const [boxWords, setBoxWords] = useState<BoxWord[]>([]);
@@ -225,6 +226,7 @@ export default function HomeScreen() {
   );
 
   async function loadData() {
+    setLoading(true);
     const [rep, due, todayCount, hardest, streakInfo] = await Promise.all([
       getRepertorioCount(), getDueCount(), getBox1TodayCount(), getHardestVocabulary(), getStreakInfo(),
     ]);
@@ -247,6 +249,7 @@ export default function HomeScreen() {
     setQuote(q);
     const storedTheme = await AsyncStorage.getItem('streak_theme');
     if (storedTheme) setMascotTheme(storedTheme);
+    setLoading(false);
   }
 
   function showSavedBanner(savedWord: string) {
@@ -388,6 +391,16 @@ export default function HomeScreen() {
   const newWordsToday = Math.min(remaining, repertorioCount);
   const totalStudyCount = newWordsToday + dueCount;
   const canStudyToday = totalStudyCount > 0;
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer, { backgroundColor: colors.bg }]}>
+        <Text style={styles.loadingLogo}>Lexevo</Text>
+        <ActivityIndicator size="large" color="#4F46E5" style={{ marginTop: 24 }} />
+        <Text style={[styles.loadingText, { color: colors.textMuted }]}>{t('home.loading')}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -1174,4 +1187,7 @@ const styles = StyleSheet.create({
   treemapCount: { fontSize: 10, fontWeight: '700', opacity: 0.75, marginTop: 1 },
   heatmapCloseBtn: { backgroundColor: '#F1F5F9', borderRadius: 12, padding: 14, alignItems: 'center', marginTop: 4 },
   heatmapCloseBtnText: { fontSize: 15, fontWeight: '600', color: '#64748B' },
+  loadingContainer: { justifyContent: 'center', alignItems: 'center', gap: 8 },
+  loadingLogo: { fontSize: 36, fontWeight: '800', color: '#4F46E5', letterSpacing: -1 },
+  loadingText: { fontSize: 14, fontWeight: '500', marginTop: 8 },
 });
