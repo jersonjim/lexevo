@@ -43,11 +43,11 @@ cp .env.example .env
 Edit `.env` and fill in your Supabase credentials:
 
 ```
-SUPABASE_URL=https://your-project-id.supabase.co
-SUPABASE_ANON_KEY=your-anon-key-here
+EXPO_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-> **Note:** Environment variable loading via `app.json` is pending (issue [#10](https://github.com/jersonjim/vocab-app/issues/10)). For now, update `supabase.ts` directly with your credentials.
+> Variables prefixed with `EXPO_PUBLIC_` are automatically loaded by Expo CLI from the `.env` file.
 
 ### 5. Run the app
 
