@@ -59,7 +59,7 @@ export default function ProfileScreen() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setProfileLoading(false); return; }
     setEmail(user.email ?? '');
-    const { data } = await supabase.from('profiles').select('nickname, box_count, avatar_url').eq('id', user.id).single();
+    const { data } = await supabase.from('profiles').select('nickname, box_count, avatar_url, streak_theme').eq('id', user.id).single();
     if (data) {
       setNickname(data.nickname);
       const count = data.box_count ?? 5;
@@ -72,6 +72,11 @@ export default function ProfileScreen() {
         setAvatarUrl(url);
       }
       syncProfile(url, initial);
+      if (data.streak_theme) {
+        await AsyncStorage.setItem('streak_theme', data.streak_theme);
+        setMascotTheme(data.streak_theme);
+        setMascotSelected(data.streak_theme);
+      }
     }
     setProfileLoading(false);
   }
@@ -224,6 +229,10 @@ export default function ProfileScreen() {
           onPress: async () => {
             await resetStreakDate();
             await AsyncStorage.setItem('streak_theme', mascotSelected);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              await supabase.from('profiles').update({ streak_theme: mascotSelected }).eq('id', user.id);
+            }
             setMascotTheme(mascotSelected);
             setStreak(0);
           },
@@ -411,7 +420,7 @@ export default function ProfileScreen() {
               <View style={styles.aboutIconCircle}>
                 <Text style={styles.aboutIconText}>📖</Text>
               </View>
-              <Text style={[styles.aboutAppName, { color: colors.text }]}>VocabApp</Text>
+              <Text style={[styles.aboutAppName, { color: colors.text }]}>Lexevo</Text>
               <Text style={[styles.aboutVersion, { color: colors.textMuted }]}>{t('profile.aboutVersion')}</Text>
             </View>
             <View style={[styles.aboutDivider, { backgroundColor: colors.border }]} />
@@ -427,7 +436,7 @@ export default function ProfileScreen() {
                 <Text style={[styles.aboutInfoValue, { color: '#4F46E5' }]}>jersonjim@gmail.com</Text>
               </View>
             </View>
-            <Text style={[styles.aboutCopyright, { color: colors.textMuted }]}>© 2026 VocabApp</Text>
+            <Text style={[styles.aboutCopyright, { color: colors.textMuted }]}>© 2026 Lexevo</Text>
             <TouchableOpacity style={styles.confirmBtn} onPress={() => setAboutModalVisible(false)} activeOpacity={0.8}>
               <Text style={styles.confirmBtnText}>{t('profile.aboutClose')}</Text>
             </TouchableOpacity>
