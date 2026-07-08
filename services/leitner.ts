@@ -234,7 +234,7 @@ export async function resetStreakDate(): Promise<void> {
   await supabase.from('profiles').update({ streak_start_date: localDateString() }).eq('id', user.id);
 }
 
-function computeStreak(data: { moved_at: string }[], startDate: string | null): { streak: number; studiedToday: boolean } {
+export function computeStreak(data: { moved_at: string }[], startDate: string | null): { streak: number; studiedToday: boolean } {
   const today = localDateString();
   const yesterday = (() => {
     const d = new Date();
