@@ -128,9 +128,14 @@ function tmColor(ratio: number): { bg: string; text: string } {
 }
 
 
+const MAX_CSV_SIZE_BYTES = 2 * 1024 * 1024; // 2MB
+const MAX_WORD_LENGTH = 100;
+const MAX_MEANING_LENGTH = 500;
+const MAX_CSV_ROWS = 1000;
+
 type CsvRow = { word: string; meaning: string };
 
-function parseCSV(text: string): CsvRow[] {
+function parseCSV(text: string): { rows: CsvRow[]; skippedLength: number } {
   const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
   if (lines.length < 2) throw new Error('empty');
 
@@ -155,9 +160,19 @@ function parseCSV(text: string): CsvRow[] {
   const mi = headers.indexOf('meaning');
   if (wi === -1 || mi === -1) throw new Error('columns');
 
-  return lines.slice(1)
+  let skippedLength = 0;
+  const rows = lines.slice(1, MAX_CSV_ROWS + 1)
     .map(line => ({ word: splitRow(line)[wi]?.trim() ?? '', meaning: splitRow(line)[mi]?.trim() ?? '' }))
-    .filter(r => r.word && r.meaning);
+    .filter(r => {
+      if (!r.word || !r.meaning) return false;
+      if (r.word.length > MAX_WORD_LENGTH || r.meaning.length > MAX_MEANING_LENGTH) {
+        skippedLength++;
+        return false;
+      }
+      return true;
+    });
+
+  return { rows, skippedLength };
 }
 
 
@@ -198,6 +213,7 @@ export default function HomeScreen() {
   const [csvError, setCsvError] = useState<string | null>(null);
   const [csvImportedCount, setCsvImportedCount] = useState(0);
   const [csvSkippedCount, setCsvSkippedCount] = useState(0);
+  const [csvSkippedLength, setCsvSkippedLength] = useState(0);
   const [wordDuplicate, setWordDuplicate] = useState(false);
   const [nickname, setNickname] = useState<string | null>(null);
   const [streak, setStreak] = useState(0);
@@ -297,6 +313,7 @@ export default function HomeScreen() {
     setCsvError(null);
     setCsvImportedCount(0);
     setCsvSkippedCount(0);
+    setCsvSkippedLength(0);
     setCsvModalVisible(true);
   }
 
@@ -316,10 +333,16 @@ export default function HomeScreen() {
         await FileSystem.copyAsync({ from: uri, to: dest });
         uri = dest;
       }
+      const info = await FileSystem.getInfoAsync(uri);
+      if (info.exists && info.size > MAX_CSV_SIZE_BYTES) {
+        setCsvError(t('home.csvErrorTooLarge'));
+        return;
+      }
       const content = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.UTF8 });
-      const rows = parseCSV(content);
+      const { rows, skippedLength } = parseCSV(content);
       if (rows.length === 0) { setCsvError(t('home.csvErrorEmpty')); return; }
       setCsvRows(rows);
+      setCsvSkippedLength(skippedLength);
       setCsvStep('preview');
     } catch (e: any) {
       if (e.message === 'columns') setCsvError(t('home.csvErrorColumns'));
@@ -647,6 +670,9 @@ export default function HomeScreen() {
                 />
                 {csvRows.length > 50 && (
                   <Text style={styles.csvMoreText}>+{csvRows.length - 50} más...</Text>
+                )}
+                {csvSkippedLength > 0 && (
+                  <Text style={styles.csvSkippedText}>{t('home.csvSkippedLength', { count: csvSkippedLength })}</Text>
                 )}
                 {csvError && <Text style={styles.csvError}>{csvError}</Text>}
                 <View style={styles.modalActions}>
