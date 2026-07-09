@@ -164,7 +164,16 @@
     "modeBox2Short": "Definición",
     "modeBox3Short": "Escritura",
     "modeBox4Short": "Cronometrado",
-    "practiceComplete": "¡Práctica Completa!"
+    "practiceComplete": "¡Práctica Completa!",
+    "round": "Ronda {{n}} de {{total}}",
+    "roundSummary": "Resumen ronda {{n}}",
+    "roundCorrect_one": "{{count}} palabra que sabías",
+    "roundCorrect_other": "{{count}} palabras que sabías",
+    "roundIncorrect_one": "{{count}} palabra para repasar",
+    "roundIncorrect_other": "{{count}} palabras para repasar",
+    "secondChance": "Segunda oportunidad",
+    "lastChance": "Último intento",
+    "sessionDone": "¡Sesión completada!"
   },
   "tabs": {
     "home": "Home",

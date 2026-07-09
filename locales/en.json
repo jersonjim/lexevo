@@ -164,7 +164,16 @@
     "modeBox2Short": "Type Definition",
     "modeBox3Short": "Spell the Word",
     "modeBox4Short": "Timed",
-    "practiceComplete": "Practice Complete!"
+    "practiceComplete": "Practice Complete!",
+    "round": "Round {{n}} of {{total}}",
+    "roundSummary": "Round {{n}} summary",
+    "roundCorrect_one": "{{count}} word you got right",
+    "roundCorrect_other": "{{count}} words you got right",
+    "roundIncorrect_one": "{{count}} word to review",
+    "roundIncorrect_other": "{{count}} words to review",
+    "secondChance": "Second chance",
+    "lastChance": "Last chance",
+    "sessionDone": "Session complete!"
   },
   "tabs": {
     "home": "Home",
