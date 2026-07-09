@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { markCorrect, markIncorrect, markIncorrectTomorrow, incrementFailCount, StudyWord } from '../services/leitner';
+import { markCorrect, markIncorrectTomorrow, incrementFailCount, StudyWord } from '../services/leitner';
 import { useTheme } from '../context/ThemeContext';
 
 const BOX_COLORS: Record<number, { bg: string; text: string }> = {
@@ -173,9 +173,7 @@ export default function StudyScreen() {
           setTypedAnswer('');
           return;
         }
-        const result = currentWord.box_number === 1
-          ? await markIncorrectTomorrow(currentWord.id)
-          : await markIncorrect(currentWord.id, boxCount);
+        const result = await markIncorrectTomorrow(currentWord.id);
         if (result.error) { Alert.alert(t('study.errorSaving'), result.error); return; }
       }
     } catch (e: any) {
@@ -203,7 +201,7 @@ export default function StudyScreen() {
       } else {
         setIncorrect(i => i + 1);
         await incrementFailCount(currentWord.id);
-        const result = await markIncorrect(currentWord.id, boxCount);
+        const result = await markIncorrectTomorrow(currentWord.id);
         if (result.error) Alert.alert(t('study.errorSaving'), result.error);
         setBox3Result('incorrect');
       }
@@ -234,7 +232,7 @@ export default function StudyScreen() {
       } else {
         setIncorrect(i => i + 1);
         await incrementFailCount(currentWord.id);
-        const result = await markIncorrect(currentWord.id, boxCount);
+        const result = await markIncorrectTomorrow(currentWord.id);
         if (result.error) Alert.alert(t('study.errorSaving'), result.error);
         setBox3Result('incorrect');
       }
