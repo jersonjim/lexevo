@@ -51,7 +51,7 @@ type StudyParams = {
   Study: { words: StudyWord[]; boxCount: number; practiceMode?: boolean };
 };
 
-const MAX_BOX1_RETRIES = 2;
+const MAX_ROUNDS = 3;
 const BOX4_TIMER = 15;
 
 export default function StudyScreen() {
@@ -61,6 +61,8 @@ export default function StudyScreen() {
   const navigation = useNavigation();
   const { words, boxCount, practiceMode = false } = route.params;
 
+  const isBox1Session = words[0]?.box_number === 1;
+
   const [queue, setQueue] = useState<StudyWord[]>([...words]);
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
@@ -68,7 +70,11 @@ export default function StudyScreen() {
   const [incorrect, setIncorrect] = useState(0);
   const [mastered, setMastered] = useState(0);
   const [done, setDone] = useState(false);
-  const [sessionFailures, setSessionFailures] = useState<Record<string, number>>({});
+  const [round, setRound] = useState(1);
+  const [failedThisRound, setFailedThisRound] = useState<StudyWord[]>([]);
+  const [roundCorrect, setRoundCorrect] = useState(0);
+  const [roundIncorrect, setRoundIncorrect] = useState(0);
+  const [showRoundSummary, setShowRoundSummary] = useState(false);
   const [typedAnswer, setTypedAnswer] = useState('');
   const [box3Result, setBox3Result] = useState<'correct' | 'incorrect' | null>(null);
   const [showBoxTransition, setShowBoxTransition] = useState(words.length > 0);
@@ -81,9 +87,7 @@ export default function StudyScreen() {
   const submittedRef = useRef(false);
 
   const currentWord = queue[index];
-  const progress = Math.min(index, words.length) / words.length;
-  const failures = sessionFailures[currentWord?.id] ?? 0;
-  const retriesLeft = MAX_BOX1_RETRIES - failures;
+  const progress = Math.min(index, queue.length) / queue.length;
   const isBox2 = currentWord?.box_number === 2;
   const isBox3 = currentWord?.box_number === 3;
   const isBox4 = currentWord?.box_number === 4;
@@ -124,7 +128,11 @@ export default function StudyScreen() {
     submittedRef.current = false;
     const nextIndex = index + 1;
     if (nextIndex >= queue.length) {
-      setDone(true);
+      if (isBox1Session && failedThisRound.length > 0 && round < MAX_ROUNDS) {
+        setShowRoundSummary(true);
+      } else {
+        setDone(true);
+      }
       return;
     }
     const currentBox = queue[index].box_number;
@@ -137,21 +145,28 @@ export default function StudyScreen() {
     }
   }
 
+  function startNextRound() {
+    const nextRound = round + 1;
+    setRound(nextRound);
+    setQueue([...failedThisRound]);
+    setFailedThisRound([]);
+    setIndex(0);
+    setRoundCorrect(0);
+    setRoundIncorrect(0);
+    setRevealed(false);
+    setTypedAnswer('');
+    setBox3Result(null);
+    setShowRoundSummary(false);
+  }
+
   // Box 1 / Box 2: self-evaluation
   async function handleAnswer(wasCorrect: boolean) {
     if (practiceMode) {
-      if (wasCorrect) {
-        setCorrect(c => c + 1);
-      } else {
+      if (wasCorrect) { setCorrect(c => c + 1); setRoundCorrect(c => c + 1); }
+      else {
         setIncorrect(i => i + 1);
-        if (currentWord.box_number === 1 && failures < MAX_BOX1_RETRIES) {
-          setSessionFailures(prev => ({ ...prev, [currentWord.id]: failures + 1 }));
-          setQueue(prev => [...prev, currentWord]);
-          setIndex(i => i + 1);
-          setRevealed(false);
-          setTypedAnswer('');
-          return;
-        }
+        setRoundIncorrect(i => i + 1);
+        if (isBox1Session) setFailedThisRound(prev => [...prev, currentWord]);
       }
       advanceCard();
       return;
@@ -162,17 +177,12 @@ export default function StudyScreen() {
         if (result.error) { Alert.alert(t('study.errorSaving'), result.error); return; }
         if (result.mastered) setMastered(m => m + 1);
         setCorrect(c => c + 1);
+        setRoundCorrect(c => c + 1);
       } else {
         setIncorrect(i => i + 1);
+        setRoundIncorrect(i => i + 1);
         await incrementFailCount(currentWord.id);
-        if (currentWord.box_number === 1 && failures < MAX_BOX1_RETRIES) {
-          setSessionFailures(prev => ({ ...prev, [currentWord.id]: failures + 1 }));
-          setQueue(prev => [...prev, currentWord]);
-          setIndex(i => i + 1);
-          setRevealed(false);
-          setTypedAnswer('');
-          return;
-        }
+        if (isBox1Session) setFailedThisRound(prev => [...prev, currentWord]);
         const result = await markIncorrectTomorrow(currentWord.id);
         if (result.error) { Alert.alert(t('study.errorSaving'), result.error); return; }
       }
@@ -280,6 +290,43 @@ export default function StudyScreen() {
     );
   }
 
+  // ── Round summary screen (box 1 only, between rounds) ──
+  if (showRoundSummary) {
+    const isLastRound = round >= MAX_ROUNDS;
+    const nextRoundLabel = round === 1 ? t('study.secondChance') : t('study.lastChance');
+    return (
+      <View style={[styles.container, { backgroundColor: colors.bg }]}>
+        <View style={styles.summary}>
+          <Text style={styles.summaryEmoji}>{roundIncorrect === 0 ? '🎉' : round === 1 ? '💪' : '🔄'}</Text>
+          <Text style={[styles.summaryTitle, { color: colors.text }]}>{t('study.roundSummary', { n: round })}</Text>
+          <Text style={styles.summarySubtitle}>{t('study.round', { n: round, total: MAX_ROUNDS })}</Text>
+          <View style={styles.resultsRow}>
+            <View style={[styles.resultBox, styles.resultGreen]}>
+              <Text style={[styles.resultNumber, { color: '#16A34A' }]}>{roundCorrect}</Text>
+              <Text style={styles.resultLabel}>{t('study.knewIt')}</Text>
+            </View>
+            <View style={[styles.resultBox, styles.resultRed]}>
+              <Text style={[styles.resultNumber, { color: '#DC2626' }]}>{roundIncorrect}</Text>
+              <Text style={styles.resultLabel}>{t('study.didntKnow')}</Text>
+            </View>
+          </View>
+          {!isLastRound && failedThisRound.length > 0 && (
+            <TouchableOpacity style={styles.doneButton} onPress={startNextRound} activeOpacity={0.8}>
+              <Text style={styles.doneButtonText}>{nextRoundLabel} ({failedThisRound.length})</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={[styles.doneButton, { backgroundColor: '#64748B', marginTop: 8 }]}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.doneButtonText}>{t('study.finish')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   // ── Summary screen ──
   if (done) {
     if (practiceMode) {
@@ -358,7 +405,10 @@ export default function StudyScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
           <Text style={styles.closeText}>✕</Text>
         </TouchableOpacity>
-        <Text style={styles.progressText}>{Math.min(index + 1, words.length)} / {words.length}</Text>
+        <Text style={styles.progressText}>
+          {Math.min(index + 1, queue.length)} / {queue.length}
+          {isBox1Session && round > 1 ? `  ·  R${round}` : ''}
+        </Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -368,14 +418,6 @@ export default function StudyScreen() {
 
       <Text style={styles.boxLabel}>{boxLabel(currentWord.box_number)}</Text>
 
-      {/* Box 1 retry banner */}
-      {currentWord.box_number === 1 && failures > 0 && (
-        <View style={styles.retryBanner}>
-          <Text style={styles.retryText}>
-            🔄 {retriesLeft === 1 ? t('study.lastRetry') : t('study.retriesLeft', { count: retriesLeft })}
-          </Text>
-        </View>
-      )}
 
       {/* ── Card ── */}
       <View style={[styles.card, (isBox2 || isBox3 || isBox4) && styles.cardCompact, { backgroundColor: colors.card }]}>
