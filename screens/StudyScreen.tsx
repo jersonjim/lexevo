@@ -72,6 +72,7 @@ export default function StudyScreen() {
   const [done, setDone] = useState(false);
   const [round, setRound] = useState(1);
   const [failedThisRound, setFailedThisRound] = useState<StudyWord[]>([]);
+  const failedThisRoundRef = useRef<StudyWord[]>([]);
   const [roundCorrect, setRoundCorrect] = useState(0);
   const [roundIncorrect, setRoundIncorrect] = useState(0);
   const [showRoundSummary, setShowRoundSummary] = useState(false);
@@ -128,7 +129,8 @@ export default function StudyScreen() {
     submittedRef.current = false;
     const nextIndex = index + 1;
     if (nextIndex >= queue.length) {
-      if (isBox1Session && failedThisRound.length > 0 && round < MAX_ROUNDS) {
+      if (isBox1Session && failedThisRoundRef.current.length > 0 && round < MAX_ROUNDS) {
+        setFailedThisRound(failedThisRoundRef.current);
         setShowRoundSummary(true);
       } else {
         setDone(true);
@@ -146,9 +148,10 @@ export default function StudyScreen() {
   }
 
   function startNextRound() {
-    const nextRound = round + 1;
-    setRound(nextRound);
-    setQueue([...failedThisRound]);
+    const nextQueue = [...failedThisRoundRef.current];
+    failedThisRoundRef.current = [];
+    setRound(r => r + 1);
+    setQueue(nextQueue);
     setFailedThisRound([]);
     setIndex(0);
     setRoundCorrect(0);
@@ -166,7 +169,7 @@ export default function StudyScreen() {
       else {
         setIncorrect(i => i + 1);
         setRoundIncorrect(i => i + 1);
-        if (isBox1Session) setFailedThisRound(prev => [...prev, currentWord]);
+        if (isBox1Session) failedThisRoundRef.current = [...failedThisRoundRef.current, currentWord];
       }
       advanceCard();
       return;
@@ -182,7 +185,7 @@ export default function StudyScreen() {
         setIncorrect(i => i + 1);
         setRoundIncorrect(i => i + 1);
         await incrementFailCount(currentWord.id);
-        if (isBox1Session) setFailedThisRound(prev => [...prev, currentWord]);
+        if (isBox1Session) failedThisRoundRef.current = [...failedThisRoundRef.current, currentWord];
         const result = await markIncorrectTomorrow(currentWord.id);
         if (result.error) { Alert.alert(t('study.errorSaving'), result.error); return; }
       }
@@ -402,7 +405,23 @@ export default function StudyScreen() {
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: colors.bg }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
+        <TouchableOpacity
+          onPress={() => {
+            if (isBox1Session && round > 1) {
+              Alert.alert(
+                t('study.exitRoundTitle'),
+                t('study.exitRoundMsg'),
+                [
+                  { text: t('common.cancel'), style: 'cancel' },
+                  { text: t('study.exitRoundConfirm'), style: 'destructive', onPress: () => navigation.goBack() },
+                ]
+              );
+            } else {
+              navigation.goBack();
+            }
+          }}
+          style={styles.closeButton}
+        >
           <Text style={styles.closeText}>✕</Text>
         </TouchableOpacity>
         <Text style={styles.progressText}>
