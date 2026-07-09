@@ -16,6 +16,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.lexevostudio.lexevo",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -29,6 +30,11 @@
     "plugins": [
       "expo-sqlite",
       "expo-localization"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c97c6e1d-46a1-4866-997e-24595cd67c3b"
+      }
+    }
   }
 }
