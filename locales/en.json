@@ -173,7 +173,10 @@
     "roundIncorrect_other": "{{count}} words to review",
     "secondChance": "Second chance",
     "lastChance": "Last chance",
-    "sessionDone": "Session complete!"
+    "sessionDone": "Session complete!",
+    "exitRoundTitle": "Exit session?",
+    "exitRoundMsg": "You're in the middle of a round. Progress will be lost.",
+    "exitRoundConfirm": "Exit"
   },
   "tabs": {
     "home": "Home",

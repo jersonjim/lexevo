@@ -173,7 +173,10 @@
     "roundIncorrect_other": "{{count}} palabras para repasar",
     "secondChance": "Segunda oportunidad",
     "lastChance": "Último intento",
-    "sessionDone": "¡Sesión completada!"
+    "sessionDone": "¡Sesión completada!",
+    "exitRoundTitle": "¿Salir de la sesión?",
+    "exitRoundMsg": "Estás en medio de una ronda. El progreso se perderá.",
+    "exitRoundConfirm": "Salir"
   },
   "tabs": {
     "home": "Home",
