@@ -81,7 +81,7 @@ export default function StudyScreen() {
   const submittedRef = useRef(false);
 
   const currentWord = queue[index];
-  const progress = index / queue.length;
+  const progress = Math.min(index, words.length) / words.length;
   const failures = sessionFailures[currentWord?.id] ?? 0;
   const retriesLeft = MAX_BOX1_RETRIES - failures;
   const isBox2 = currentWord?.box_number === 2;
@@ -358,7 +358,7 @@ export default function StudyScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
           <Text style={styles.closeText}>✕</Text>
         </TouchableOpacity>
-        <Text style={styles.progressText}>{index + 1} / {queue.length}</Text>
+        <Text style={styles.progressText}>{Math.min(index + 1, words.length)} / {words.length}</Text>
         <View style={{ width: 36 }} />
       </View>
 
