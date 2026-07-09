@@ -305,61 +305,47 @@ export async function decrementFailCount(wordId: string): Promise<void> {
 export type MarkResult = { error: string | null; mastered: boolean };
 
 export async function markCorrect(wordId: string, currentBox: number, boxCount: number): Promise<MarkResult> {
-  // Palabra completó el último nivel → vuelve al Repertorio como dominada
-  if (currentBox >= boxCount) {
-    const { data: wordData } = await supabase
-      .from('words').select('mastered_count').eq('id', wordId).single();
-    const newCount = (wordData?.mastered_count ?? 0) + 1;
-    const { data, error } = await supabase
-      .from('words')
-      .update({ box_number: 0, next_review_at: null, mastered_count: newCount })
-      .eq('id', wordId)
-      .select('id');
-    if (error) return { error: error.message, mastered: false };
-    if (!data?.length) return { error: `Sin permiso para actualizar. ID: ${wordId}`, mastered: false };
-    await supabase.from('word_box_history').insert({ word_id: wordId, box_number: 0 });
-    await decrementFailCount(wordId);
-    return { error: null, mastered: true };
+  const mastered = currentBox >= boxCount;
+  let nextBox = 0;
+  let nextReviewAt: string | null = null;
+
+  if (!mastered) {
+    const intervals = BOX_INTERVALS[boxCount];
+    if (!intervals) return { error: `boxCount inválido: ${boxCount}`, mastered: false };
+    nextBox = currentBox + 1;
+    nextReviewAt = addDays(intervals[nextBox - 1]);
   }
 
-  const intervals = BOX_INTERVALS[boxCount];
-  if (!intervals) return { error: `boxCount inválido: ${boxCount}`, mastered: false };
-  const nextBox = currentBox + 1;
-  const intervalDays = intervals[nextBox - 1];
-  const { data, error } = await supabase
-    .from('words')
-    .update({ box_number: nextBox, next_review_at: addDays(intervalDays) })
-    .eq('id', wordId)
-    .select('id, box_number');
+  const { error } = await supabase.rpc('mark_word_correct', {
+    p_word_id: wordId,
+    p_next_box: nextBox,
+    p_next_review_at: nextReviewAt,
+    p_mastered: mastered,
+  });
+
   if (error) return { error: error.message, mastered: false };
-  if (!data?.length) return { error: `Sin permiso para actualizar. ID: ${wordId}`, mastered: false };
-  await supabase.from('word_box_history').insert({ word_id: wordId, box_number: nextBox });
-  await decrementFailCount(wordId);
-  return { error: null, mastered: false };
+  return { error: null, mastered };
 }
 
 export async function markIncorrect(wordId: string, boxCount: number): Promise<MarkResult> {
   const intervals = BOX_INTERVALS[boxCount];
   if (!intervals) return { error: `boxCount inválido: ${boxCount}`, mastered: false };
-  const { data, error } = await supabase
-    .from('words')
-    .update({ box_number: 1, next_review_at: new Date().toISOString() })
-    .eq('id', wordId)
-    .select('id, box_number');
+
+  const { error } = await supabase.rpc('mark_word_incorrect', {
+    p_word_id: wordId,
+    p_next_review_at: new Date().toISOString(),
+  });
+
   if (error) return { error: error.message, mastered: false };
-  if (!data?.length) return { error: `Sin permiso para actualizar. ID: ${wordId}`, mastered: false };
-  await supabase.from('word_box_history').insert({ word_id: wordId, box_number: 1 });
   return { error: null, mastered: false };
 }
 
 export async function markIncorrectTomorrow(wordId: string): Promise<MarkResult> {
-  const { data, error } = await supabase
-    .from('words')
-    .update({ box_number: 1, next_review_at: addDays(1) })
-    .eq('id', wordId)
-    .select('id');
+  const { error } = await supabase.rpc('mark_word_incorrect', {
+    p_word_id: wordId,
+    p_next_review_at: addDays(1),
+  });
+
   if (error) return { error: error.message, mastered: false };
-  if (!data?.length) return { error: `Sin permiso para actualizar. ID: ${wordId}`, mastered: false };
-  await supabase.from('word_box_history').insert({ word_id: wordId, box_number: 1 });
   return { error: null, mastered: false };
 }
